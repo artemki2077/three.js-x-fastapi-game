@@ -6,6 +6,11 @@ var dev = false;
 
 
 const scene = new THREE.Scene();
+// const webSocket = new WebSocket("ws://localhost:8001/ws");
+
+
+let ws_isConnected = false;
+// webSocket.onopen = (event)=>{ws_isConnected = true};
 
 // const camera = new THREE.OrthographicCamera( window.innerWidth / - 16, window.innerWidth / 16, window.innerHeight / 16, window.innerHeight / - 16, -200, 500 );
 const camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, 1500);
@@ -133,28 +138,8 @@ class World{
   constructor(scene){
     this.group = new THREE.Group();
     scene.add(this.group)
-    this.map = [
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-    ]
+    this.size_world = 30
+    this.map = [];
   }
 
 
