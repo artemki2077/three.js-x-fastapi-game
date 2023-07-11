@@ -2,15 +2,38 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 
-var dev = false;
+var dev = true;
 
 
 const scene = new THREE.Scene();
-// const webSocket = new WebSocket("ws://localhost:8001/ws");
+const webSocket = new WebSocket("ws://localhost:8001/ws");
 
 
 let ws_isConnected = false;
-// webSocket.onopen = (event)=>{ws_isConnected = true};
+webSocket.onopen = (event) =>{
+  ws_isConnected = true;
+  const msg = {
+    command: "start",
+    x: world.pos.x,
+    y: world.pos.y,
+    z: world.pos.z,
+  };
+  console.log('connected');
+  webSocket.send(JSON.stringify(msg));
+  // plane.generateFloor()
+};
+
+
+webSocket.onmessage = (event) => {
+  // parseJSON
+  var data = jQuery.parseJSON(jQuery.parseJSON(event.data));
+
+  console.log(typeof(data))
+  if (data['command'] == 'start'){
+    console.log('get');
+    world.generateMap(data['result']);
+  }
+}
 
 // const camera = new THREE.OrthographicCamera( window.innerWidth / - 16, window.innerWidth / 16, window.innerHeight / 16, window.innerHeight / - 16, -200, 500 );
 const camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, 1500);
@@ -101,9 +124,9 @@ class Plane{
   generateFloor(){
     let p = {x: 0, y: 0};
 
-    for(let x=-40;x <= 40;x += 5){
+    for(let x=-50;x <= 50;x += 5){
       
-      for(let y=-40;y <= 40;y += 5){
+      for(let y=-50;y <= 50;y += 5){
         this.generateBlock(x, 0, y, 4.8, 0xf9c834, p);
         p.y += 1;
       }
@@ -136,15 +159,48 @@ class Plane{
 
 class World{
   constructor(scene){
+    this.pos = {x: 11, y: 1, z: 11};
     this.group = new THREE.Group();
     scene.add(this.group)
-    this.size_world = 30
-    this.map = [];
+    let size_world = 30
+    this.size_world = size_world;
+    this.map = Array.from(Array(size_world).keys()).map(x => Array.from(Array(size_world).keys()).map(x => Array.from(Array(size_world).keys()).map(x => null)));
+  }
+
+  generateBlock(x, y, z, size, color=0x00ff00, selectedColor=0xffff00, pos={}){
+    const cube = {
+      geometry: new THREE.BoxGeometry(size, size, size),
+      material: new THREE.MeshPhongMaterial({ color: color})
+    };
+    let cube_object = new THREE.Mesh(cube.geometry, cube.material);
+    cube_object.position.x = x;
+    cube_object.position.y = y;
+    cube_object.position.z = z;
+    cube_object.castShadow = true;
+    cube_object.receiveShadow = true;
+    this.group.add(cube_object);
+
+    cube_object.userData.mainColor = color;
+    cube_object.userData.selectedColor = selectedColor;
+    cube_object.userData.colorChangeable = true;
+    cube_object.userData.pos = pos;
+    return cube_object
   }
 
 
-  generateMap(){
-
+  generateMap(map){
+    for(let h_x_i in map){
+      for(let h_z_i in map[h_x_i]){
+        for(let i_i in map[h_x_i][h_z_i]){
+          let i = map[h_x_i][h_z_i][i_i];
+          console.log(i);
+          if(i != null){
+            this.generateBlock((h_x_i - this.pos.x) * 5, i * 5, (h_z_i - this.pos.z) * 5, 4.75, 0xf9c834)
+            console.log('generated')
+          }
+        }
+      }
+    }
   }
 
   add(object){
@@ -179,7 +235,7 @@ var hero = new Hero(scene);
 // }
 
 var plane_mouse = generatePlane(0, 0, 0, 100);
-plane.generateFloor();
+// plane.generateFloor();
 
 
 
@@ -195,7 +251,7 @@ scene.add(hemiLight);
 
 //Add directional light
 let dirLight = new THREE.DirectionalLight(0xffffff, 1);
-dirLight.position.set(-30, 50, -30);
+dirLight.position.set(-30, 50, 45);
 scene.add(dirLight);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.width = 2048;
