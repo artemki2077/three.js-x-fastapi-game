@@ -28,9 +28,7 @@ webSocket.onmessage = (event) => {
   // parseJSON
   var data = jQuery.parseJSON(jQuery.parseJSON(event.data));
 
-  console.log(typeof(data))
   if (data['command'] == 'start'){
-    console.log('get');
     world.generateMap(data['result']);
   }
 }
@@ -167,23 +165,110 @@ class World{
     this.map = Array.from(Array(size_world).keys()).map(x => Array.from(Array(size_world).keys()).map(x => Array.from(Array(size_world).keys()).map(x => null)));
   }
 
-  generateBlock(x, y, z, size, color=0x00ff00, selectedColor=0xffff00, pos={}){
+  generateBlock(x, y, z, size, color=0x00ff00, selectedColor=0x000000, pos={}){
+    
+    const block_material = new THREE.MeshPhongMaterial({ color: color});
+
+    var block_group = new THREE.Group();
     const cube = {
       geometry: new THREE.BoxGeometry(size, size, size),
-      material: new THREE.MeshPhongMaterial({ color: color})
+      material: block_material
     };
     let cube_object = new THREE.Mesh(cube.geometry, cube.material);
-    cube_object.position.x = x;
-    cube_object.position.y = y;
-    cube_object.position.z = z;
-    cube_object.castShadow = true;
-    cube_object.receiveShadow = true;
-    this.group.add(cube_object);
-
     cube_object.userData.mainColor = color;
     cube_object.userData.selectedColor = selectedColor;
-    cube_object.userData.colorChangeable = true;
-    cube_object.userData.pos = pos;
+    block_group.userData.pos = pos;
+
+    block_group.add(cube_object);
+
+    // ____sides____
+    let distance_beetwin = 0.001
+    const planes_geometry = new THREE.PlaneGeometry(size, size);
+
+    //    side y+
+    var plane_object = new THREE.Mesh(planes_geometry, new THREE.MeshPhongMaterial({ color: block_material}));
+
+    plane_object.userData.mainColor = color;
+    plane_object.userData.selectedColor = selectedColor;
+    pos.side = 'y+'
+    plane_object.userData.pos = pos;
+    plane_object.position.y = (size / 2) + distance_beetwin;
+    plane_object.rotation.x = Math.PI / -2;
+    block_group.add(plane_object);
+
+    //    side y-
+    var plane_object = new THREE.Mesh(planes_geometry, new THREE.MeshPhongMaterial({ color: block_material}));
+
+    plane_object.userData.mainColor = color;
+    plane_object.userData.selectedColor = selectedColor;
+    pos.side = 'y-'
+    plane_object.userData.pos = pos;
+    plane_object.position.y = -(size / 2) - distance_beetwin;
+    plane_object.rotation.x = Math.PI / 2;
+    block_group.add(plane_object);
+
+    //    side x+
+    var plane_object = new THREE.Mesh(planes_geometry, new THREE.MeshPhongMaterial({ color: block_material}));
+
+    plane_object.userData.mainColor = color;
+    plane_object.userData.selectedColor = selectedColor;
+    pos.side = 'x+'
+    plane_object.userData.pos = pos;
+    plane_object.position.x = (size / 2) + distance_beetwin;
+    plane_object.rotation.y = Math.PI / 2;
+    block_group.add(plane_object);
+
+    //    side x-
+    var plane_object = new THREE.Mesh(planes_geometry, new THREE.MeshPhongMaterial({ color: 0x000000}));
+
+    plane_object.userData.mainColor = color;
+    plane_object.userData.selectedColor = selectedColor;
+    pos.side = 'x+'
+    plane_object.userData.pos = pos;
+    plane_object.position.x = -(size / 2) - distance_beetwin;
+    plane_object.rotation.y = Math.PI / -2;
+    block_group.add(plane_object);
+
+    //    side z+
+    var plane_object = new THREE.Mesh(planes_geometry, new THREE.MeshPhongMaterial({ color: 0x000000}));
+
+    plane_object.userData.mainColor = color;
+    plane_object.userData.selectedColor = selectedColor;
+    pos.side = 'z+'
+    plane_object.userData.pos = pos;
+    plane_object.position.z = (size / 2) + distance_beetwin;
+    // plane_object.rotation.y ;
+    block_group.add(plane_object);
+
+    //    side z-
+    var plane_object = new THREE.Mesh(planes_geometry, new THREE.MeshPhongMaterial({ color: 0x000000}));
+
+    plane_object.userData.mainColor = color;
+    plane_object.userData.selectedColor = selectedColor;
+    pos.side = 'z+'
+    plane_object.userData.pos = pos;
+    plane_object.position.z = -(size / 2) - distance_beetwin;
+    plane_object.rotation.y = Math.PI;
+    block_group.add(plane_object);
+
+
+
+
+
+    
+    block_group.position.x = x;
+    block_group.position.y = y;
+    block_group.position.z = z;
+    block_group.castShadow = true;
+    block_group.receiveShadow = true;
+
+    block_group.userData.mainColor = color;
+    block_group.userData.selectedColor = selectedColor;
+    block_group.userData.pos = pos;
+
+    this.group.add(block_group);
+
+    
     return cube_object
   }
 
@@ -193,14 +278,28 @@ class World{
       for(let h_z_i in map[h_x_i]){
         for(let i_i in map[h_x_i][h_z_i]){
           let i = map[h_x_i][h_z_i][i_i];
-          console.log(i);
           if(i != null){
-            this.generateBlock((h_x_i - this.pos.x) * 5, i * 5, (h_z_i - this.pos.z) * 5, 4.75, 0xf9c834)
-            console.log('generated')
+            this.generateBlock((h_x_i - this.pos.x) * 5, i * 5, (h_z_i - this.pos.z) * 5, 4.75, 0xf9c834, 0x000000, {x: h_x_i, y: i_i, z: h_z_i})
+            console.log(`generated x: ${h_x_i}, y: ${i_i}, z: ${h_z_i}`)
           }
         }
       }
     }
+  }
+  update(slcd_object){
+    this.group.children.forEach((groups)=>{
+      
+      if(groups.isGroup){
+        groups.children.forEach((element)=>{
+          if (element == slcd_object){
+            element.material.color.setHex( element.userData.selectedColor );
+          }else{
+            console.log(element);
+            element.material.color.setHex( element.userData.mainColor );
+          }
+        })
+      }
+    })
   }
 
   add(object){
@@ -284,7 +383,7 @@ function render() {
   }
 
   raycaster.setFromCamera(mouse, camera);
-  const found = raycaster.intersectObjects(plane.group.children);
+  const found = raycaster.intersectObjects(world.group.children);
   const found_plane_mouse = raycaster.intersectObject(plane_mouse);
 
   if (found_plane_mouse.length){
@@ -298,7 +397,7 @@ function render() {
     selected_object = undefined;
   }
   if (selected_object && selected_object_s != selected_object){
-    plane.update(selected_object);
+    world.update(selected_object);
     selected_object_s = selected_object;
   }
   

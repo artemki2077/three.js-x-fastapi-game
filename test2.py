@@ -13,6 +13,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
         command = msg.get('command')
         if command == 'get':
+            ...
             
 
 
